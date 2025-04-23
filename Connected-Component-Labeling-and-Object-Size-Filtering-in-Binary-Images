@@ -1,0 +1,120 @@
+import cv2
+from matplotlib import patches, pyplot as plt
+import numpy as np
+
+# This code loads an input image'cc_input.png' by using cv2.imread() function.
+image = cv2.imread('cc_input.png', 0)
+# converts the image into a binary image.
+# all pixel values under 128 to 255 white and 
+
+# all pixel values bigger to 128 to 0 black.
+# the outcome of binary image is stored as a array.
+
+# creates a array of zeros
+# get the height and width of the binary image using shape
+binaryImage = np.where(image < 128, 255, 0).astype(np.int32)
+connected_compinent = np.zeros_like(binaryImage)
+imag_h, imag_w= binaryImage.shape
+
+#If the pixel has no labeled , the left and top neighbors have a value of 0 new label is assigned to the pixel.
+# If it contains an adjacent value from the left side, but does not have it from the top, 
+
+# it takes a label that is from the left side.
+# And if pixel it has a value on the top side, but not on the left side, 
+# then it takes the same name as the one above.
+
+#If the pixel has to both the left and above and they have different value.
+# The smaller value is assigned to the current pixel.
+
+new_compinent=1
+for rad in range(imag_h):
+    for kolon in range(imag_w):
+        if binaryImage[rad, kolon] == 255: 
+            if connected_compinent [rad, kolon -1] == 0 and connected_compinent[rad -1, kolon]== 0 :
+                connected_compinent [rad, kolon] = new_compinent
+                new_compinent += 1
+
+            elif connected_compinent [rad, kolon -1] != 0 and connected_compinent[rad -1, kolon]== 0 :
+                connected_compinent [rad, kolon] = connected_compinent [rad, kolon -1]
+
+            elif connected_compinent [rad, kolon -1] == 0 and connected_compinent[rad -1, kolon] != 0 :
+                connected_compinent [rad, kolon] = connected_compinent [rad-1, kolon]
+            
+            elif connected_compinent [rad, kolon -1] != 0 and connected_compinent[rad -1, kolon]!= 0 :
+                if connected_compinent[rad -1, kolon] != connected_compinent[rad, kolon-1]:
+                    x= max(connected_compinent[rad-1, kolon],connected_compinent[rad,kolon-1])
+                    y= min(connected_compinent[rad-1, kolon],connected_compinent[rad,kolon-1])
+                    connected_compinent [connected_compinent == x] = y
+                connected_compinent[rad, kolon]=connected_compinent[rad-1, kolon]
+
+
+
+# finds all unique values in the matrix by using np.unique.Because of it, 
+# unstructured number shows or it shows missing numbers, 
+
+# therefore we used "unique_values" to structure the numbers. 
+# The way it works is it starts from the beginning
+
+# creates a dictionary mapping the ancient values to new values
+#  where the new values are starting from 0. 
+# mapping used to include that they have sequential values.
+
+# uses np.where() function to find the minimum and maximum row and column for each component.
+# calculates the height and width of each component. 
+
+# computes the average height and width of the connected components by collection the heights and widths
+# of all  components than dividing by the number of components. 
+
+# We only have five, but we have a zero, so the total is six. 
+# That's why we started from number one to start from one to six.
+
+unique_values = np.unique(connected_compinent)
+mapping = {old_value: new_value for new_value, old_value in enumerate(sorted(unique_values), 0)}
+def apply_mapping(value):
+    return mapping[value]
+vfunc = np.vectorize(apply_mapping)
+connected_compinent = vfunc(connected_compinent)
+
+objects = []
+hoy_total = 0
+bred_total = 0
+
+for i in range(1, len(unique_values)):
+    obj = (connected_compinent == i)
+    h, w = np.where(obj)
+    min_h, max_h = np.min(h), np.max(h)
+    min_w, max_w = np.min(w), np.max(w)
+    height = max_h - min_h + 1
+    width = max_w - min_w + 1
+    objects.append({"min_h": min_h, "min_w": min_w, "height": height, "width": width})
+
+    hoy_total += height
+    bred_total += width
+avg_height = hoy_total / len(unique_values) - 1
+avg_width = bred_total / len(unique_values) - 1
+
+# creates a new figure and axis object using plt.subplots(). 
+# than shows the input image.
+
+#creates a rectangle patch for each component using patches.Rectangle() function.
+# it is turned off using plt.axis('off').
+# Then, it saves the image using plt.savefig() 
+
+colors = ['k','b','g','m', 'r', 'y','c']
+
+fig, ax = plt.subplots(1)
+ax.imshow(image, cmap='gray')
+for i, obj in enumerate(objects):
+    if obj["width"]> avg_width and obj['height']> avg_height:
+        color = colors[i % len(colors)]
+        rect = patches.Rectangle((obj['min_w'], obj['min_h']), obj['width'], obj['height'], linewidth=2,
+                                 edgecolor=color, facecolor='none')
+        ax.add_patch(rect)
+plt.axis('off')
+plt.savefig('compinent_image.png', bbox_inches='tight')
+plt.close(fig)
+rgb_image = plt.imread('compinent_image.png')
+
+plt.imshow(rgb_image)
+plt.axis('off')
+plt.show()
